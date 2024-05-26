@@ -6,12 +6,18 @@
 <body>
     <h1>Your Dashboard</h1>
     <a href="/newpost">Create New Post</a>
+    <a href="/profile">View Profile</a>
+    <a href="/logout">Logout</a>
     <h2>Your Posts</h2>
     <ul>
         <% posts.forEach(post => { %>
-            <li><a href="/post/<%= post.id %>"><%= post.title %></a></li>
+            <li>
+                <a href="/post/<%= post.id %>"><%= post.title %></a>
+                <form action="/deletepost/<%= post.id %>" method="post" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
         <% }) %>
     </ul>
-    <a href="/">Home</a>
 </body>
 </html>

@@ -52,13 +52,27 @@ app.get('/post/:id', (req, res) => {
         res.render('post', { post });
     }).catch(err => res.redirect('/'));
 });
-app.get('/newpost', (req, res) => res.render('newpost'));
-
+app.get('/newpost', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.render('newpost');
+});
 app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     Post.findAll({ where: { author: req.session.userId } }).then(posts => {
         res.render('dashboard', { posts });
     }).catch(err => res.redirect('/'));
+});
+app.get('/profile', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    User.findByPk(req.session.userId).then(user => {
+        res.render('profile', { user, error: null });
+    }).catch(err => res.redirect('/'));
+});
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) return res.redirect('/dashboard');
+        res.redirect('/');
+    });
 });
 
 app.post('/register', (req, res) => {
@@ -102,6 +116,32 @@ app.post('/newpost', (req, res) => {
     Post.create({ title: req.body.title, content: req.body.content, author: req.session.userId })
         .then(() => res.redirect('/dashboard'))
         .catch(() => res.redirect('/newpost'));
+});
+
+app.post('/deletepost/:id', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    Post.findByPk(req.params.id).then(post => {
+        if (post.author !== req.session.userId) return res.redirect('/dashboard');
+        post.destroy().then(() => res.redirect('/dashboard'));
+    }).catch(() => res.redirect('/dashboard'));
+});
+
+app.post('/updateprofile', (req, res) => {
+    const { username, password } = req.body;
+    if (!req.session.userId) return res.redirect('/login');
+    User.findByPk(req.session.userId).then(user => {
+        if (!user) return res.redirect('/login');
+        user.username = username;
+        if (password) {
+            bcrypt.hash(password, 10, (err, hash) => {
+                if (err) return res.render('profile', { user, error: 'Error updating profile' });
+                user.password = hash;
+                user.save().then(() => res.redirect('/dashboard'));
+            });
+        } else {
+            user.save().then(() => res.redirect('/dashboard'));
+        }
+    }).catch(() => res.redirect('/profile'));
 });
 
 app.listen(3000, () => console.log('Server started on http://localhost:3000'));
